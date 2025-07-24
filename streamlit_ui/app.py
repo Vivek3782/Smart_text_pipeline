@@ -1,17 +1,16 @@
 import streamlit as st
 import requests
 import os
-import plotly.express as px
+import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 
 load_dotenv()
 
 API_BASE = "http://127.0.0.1:8000/api"
 
-st.title("📚 Smart Text Insight Pipeline (via API)")
+st.title("📚 Smart Text Insight Pipeline")
 
-# 1️⃣ GET predictions from API
-st.header("Stored Predictions (API)")
+st.header("Stored Predictions")
 
 res = requests.get(f"{API_BASE}/predictions/")
 if res.status_code == 200:
@@ -26,8 +25,7 @@ if res.status_code == 200:
 else:
     st.error("Could not fetch predictions.")
 
-# 2️⃣ POST new text to predict
-st.header("Try New Prediction (API)")
+st.header("Try New Prediction")
 
 new_text = st.text_area("Enter new text:")
 if st.button("Predict"):
@@ -42,10 +40,7 @@ if st.button("Predict"):
         else:
             st.error("Error predicting.")
 
-# 3️⃣ Ask Gemini
-st.header("Ask Gemini")
-# GEMINI_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent"
-# GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+st.header("Ask our Model")
 q = st.text_input("Ask something about your reviews:")
 if st.button("Ask"):
     if q.strip() == "":
@@ -55,31 +50,7 @@ if st.button("Ask"):
         if res.status_code == 200:
             st.success(res.json()["answer"])
         else:
-            st.error("Gemini error.")
-        # headers = {
-        #         "Content-Type": "application/json"
-        #     }
-        # payload = {
-        #         "contents": [
-        #             {"parts": [{"text": q}]}
-        #         ],
-        #         "generationConfig": {
-        #             "temperature": 0.7,
-        #             "topK": 40,
-        #             "topP": 0.95,
-        #             "maxOutputTokens": 2048
-        #         }
-        #     }
-            
-        # url_with_key = f"{GEMINI_URL}?key={GEMINI_API_KEY}"
-        # res = requests.post(url_with_key, json=payload, headers=headers)
-        # if res.status_code == 200:
-        #     response_data = res.json()
-        #     if 'candidates' in response_data and len(response_data['candidates']) > 0:
-        #                 answer = response_data['candidates'][0]['content']['parts'][0]['text']
-        #                 st.success(answer)
-        # else:
-        #     st.error("Gemini error.")
+            st.error("Model error. Please try again.")
 
 st.header("📊 Sentiment Distribution")
 
@@ -99,12 +70,44 @@ if res.status_code == 200:
         labels = list(counts.keys())
         values = list(counts.values())
 
-        fig = px.pie(
-            names=labels,
-            values=values,
-            title="Sentiment Breakdown"
+        # Create matplotlib pie chart
+        fig, ax = plt.subplots(figsize=(8, 6))
+        
+        # Set purple background
+        fig.patch.set_facecolor((9/255, 70/255, 126/255, 1.0))   
+        ax.set_facecolor('purple')
+        
+        colors = ['#ff9999', '#66b3ff', '#99ff99', '#ffcc99', '#ff99cc']  # Custom colors
+        wedges, texts, autotexts = ax.pie(
+            values, 
+            labels=labels, 
+            autopct='%1.1f%%',
+            colors=colors[:len(labels)],
+            startangle=90,
+            wedgeprops={'edgecolor': 'white', 'linewidth': 2}  # White boundary
         )
-        st.plotly_chart(fig)
+        
+        # Customize the chart
+        ax.set_title("Sentiment Breakdown", fontsize=16, fontweight='bold', color='white')
+        
+        # Make percentage text more readable
+        for autotext in autotexts:
+            autotext.set_color('white')
+            autotext.set_fontweight('bold')
+        
+        # Make label text white for better visibility on purple background
+        for text in texts:
+            text.set_color('white')
+            text.set_fontweight('bold')
+        
+        # Equal aspect ratio ensures that pie is drawn as a circle
+        ax.axis('equal')
+        
+        # Display the chart in Streamlit
+        st.pyplot(fig)
+        
+        # Clear the figure to prevent memory issues
+        plt.clf()
     else:
         st.info("No predictions to display yet. Please run some predictions first!")
 else:
